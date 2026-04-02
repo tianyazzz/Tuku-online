@@ -24,6 +24,9 @@ export const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folderId, setFolderId] = useState<string>('');
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const fetchFolders = useCallback(async () => {
     if (!user) return;
@@ -76,17 +79,34 @@ export const Dashboard = () => {
   }, [fetchImages]);
 
   const handleCreateFolder = async () => {
-    const name = window.prompt('请输入文件夹名称');
-    if (!name) return;
     try {
       if (!user) return;
-      const created = await createFolder(name, user.id);
+      const created = await createFolder(newFolderName, user.id);
       setFolders([...folders, created].sort((a, b) => a.name.localeCompare(b.name)));
       setFolderId(created.id);
+      setIsCreatingFolder(false);
+      setNewFolderName('');
       toast.success('文件夹已创建');
     } catch (e: unknown) {
       toast.error(toErrorMessage(e) || '创建文件夹失败');
+    } finally {
+      setCreatingFolder(false);
     }
+  };
+
+  const openCreateFolder = () => {
+    if (!user) {
+      toast.error('请先登录');
+      return;
+    }
+    setIsCreatingFolder(true);
+    setNewFolderName('');
+  };
+
+  const submitCreateFolder = async () => {
+    if (creatingFolder) return;
+    setCreatingFolder(true);
+    await handleCreateFolder();
   };
 
   const handleDeleteFolder = async (id: string, name: string) => {
@@ -203,14 +223,55 @@ export const Dashboard = () => {
             ))
           )}
         </div>
-        <button
-          type="button"
-          onClick={handleCreateFolder}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
-        >
-          <FolderPlus className="w-4 h-4" />
-          新建文件夹
-        </button>
+        {!isCreatingFolder ? (
+          <button
+            type="button"
+            onClick={openCreateFolder}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+          >
+            <FolderPlus className="w-4 h-4" />
+            新建文件夹
+          </button>
+        ) : (
+          <div className="flex items-stretch gap-2">
+            <input
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitCreateFolder();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setIsCreatingFolder(false);
+                  setNewFolderName('');
+                }
+              }}
+              placeholder="文件夹名称"
+              className="w-40 sm:w-48 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={submitCreateFolder}
+              disabled={creatingFolder}
+              className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            >
+              {creatingFolder ? '创建中' : '创建'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreatingFolder(false);
+                setNewFolderName('');
+              }}
+              className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
+            >
+              取消
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (

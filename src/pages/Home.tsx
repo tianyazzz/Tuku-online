@@ -20,6 +20,9 @@ export const Home = () => {
   const [recentUploads, setRecentUploads] = useState<UploadedImage[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   // Load from local storage for guests, or we could just show session uploads
   useEffect(() => {
@@ -72,18 +75,35 @@ export const Home = () => {
   }, [user]);
 
   const handleCreateFolder = async () => {
-    const name = window.prompt('请输入文件夹名称');
-    if (!name) return;
     try {
       if (!user) return;
-      const created = await createFolder(name, user.id);
+      const created = await createFolder(newFolderName, user.id);
       const next = [...folders, created].sort((a, b) => a.name.localeCompare(b.name));
       setFolders(next);
       setSelectedFolderId(created.id);
+      setIsCreatingFolder(false);
+      setNewFolderName('');
       toast.success('文件夹已创建');
     } catch (e: unknown) {
       toast.error(toErrorMessage(e) || '创建文件夹失败');
+    } finally {
+      setCreatingFolder(false);
     }
+  };
+
+  const openCreateFolder = () => {
+    if (!user) {
+      toast.error('请先登录');
+      return;
+    }
+    setIsCreatingFolder(true);
+    setNewFolderName('');
+  };
+
+  const submitCreateFolder = async () => {
+    if (creatingFolder) return;
+    setCreatingFolder(true);
+    await handleCreateFolder();
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -166,13 +186,54 @@ export const Home = () => {
                 ))}
               </select>
             </div>
-            <button
-              type="button"
-              onClick={handleCreateFolder}
-              className="px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
-            >
-              新建文件夹
-            </button>
+            {!isCreatingFolder ? (
+              <button
+                type="button"
+                onClick={openCreateFolder}
+                className="px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+              >
+                新建文件夹
+              </button>
+            ) : (
+              <div className="flex items-stretch gap-2">
+                <input
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      submitCreateFolder();
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setIsCreatingFolder(false);
+                      setNewFolderName('');
+                    }
+                  }}
+                  placeholder="文件夹名称"
+                  className="w-40 sm:w-48 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={submitCreateFolder}
+                  disabled={creatingFolder}
+                  className="px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                >
+                  {creatingFolder ? '创建中' : '创建'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingFolder(false);
+                    setNewFolderName('');
+                  }}
+                  className="px-3 py-2 rounded-md bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            )}
           </div>
         )}
 
