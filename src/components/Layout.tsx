@@ -20,7 +20,7 @@ export const Layout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors">
             <ImageIcon className="w-8 h-8" />
-            <span className="font-bold text-xl tracking-tight text-zinc-900">KuCun 图床</span>
+            <span className="font-bold text-xl tracking-tight text-zinc-900">天琊的图床工具</span>
           </Link>
           
           <nav className="flex items-center gap-4">
@@ -72,7 +72,7 @@ export const Layout: React.FC = () => {
       
       <footer className="bg-white border-t border-zinc-200 py-6 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-zinc-500">
-          <p>© {new Date().getFullYear()} KuCun 图床工具. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} 天琊的图床工具. All rights reserved.</p>
         </div>
       </footer>
     </div>
