@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import toast from 'react-hot-toast';
+import { toErrorMessage } from '../lib/utils';
 
 export const Register = () => {
   const [email, setEmail] = useState('');
@@ -23,8 +24,8 @@ export const Register = () => {
       
       toast.success('注册成功！');
       navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || '注册失败，请稍后重试');
+    } catch (error: unknown) {
+      toast.error(toErrorMessage(error) || '注册失败，请稍后重试');
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import toast from 'react-hot-toast';
+import { toErrorMessage } from '../lib/utils';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -23,8 +24,8 @@ export const Login = () => {
       
       toast.success('登录成功');
       navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || '登录失败，请检查账号密码');
+    } catch (error: unknown) {
+      toast.error(toErrorMessage(error) || '登录失败，请检查账号密码');
     } finally {
       setLoading(false);
     }

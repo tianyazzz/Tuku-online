@@ -4,6 +4,8 @@ import { UploadCloud, Check, Copy, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { uploadImage } from '../lib/upload';
 import toast from 'react-hot-toast';
+import { createFolder, listFolders, Folder } from '../lib/folders';
+import { toErrorMessage } from '../lib/utils';
 
 interface UploadedImage {
   id: string;
@@ -16,22 +18,73 @@ export const Home = () => {
   const { user } = useAuthStore();
   const [uploading, setUploading] = useState(false);
   const [recentUploads, setRecentUploads] = useState<UploadedImage[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
 
   // Load from local storage for guests, or we could just show session uploads
   useEffect(() => {
     const saved = localStorage.getItem('guest_recent_uploads');
     if (saved && !user) {
       try {
-        const parsed = JSON.parse(saved);
-        setRecentUploads(parsed.map((item: any) => ({
-          ...item,
-          uploadedAt: new Date(item.uploadedAt)
-        })));
-      } catch (e) {
-        console.error('Failed to parse recent uploads', e);
+        const parsed: unknown = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return;
+        const mapped: UploadedImage[] = parsed
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const obj = item as Record<string, unknown>;
+            if (typeof obj.id !== 'string') return null;
+            if (typeof obj.url !== 'string') return null;
+            if (typeof obj.originalName !== 'string') return null;
+            const raw = obj.uploadedAt;
+            const date = typeof raw === 'string' || typeof raw === 'number' ? new Date(raw) : new Date();
+            return {
+              id: obj.id,
+              url: obj.url,
+              originalName: obj.originalName,
+              uploadedAt: date,
+            };
+          })
+          .filter((v): v is UploadedImage => Boolean(v));
+        setRecentUploads(mapped);
+      } catch {
+        setRecentUploads([]);
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!user) {
+        setFolders([]);
+        setSelectedFolderId('');
+        return;
+      }
+
+      try {
+        const data = await listFolders();
+        setFolders(data);
+      } catch (e: unknown) {
+        toast.error(toErrorMessage(e) || '加载文件夹失败');
+      }
+    };
+
+    run();
+  }, [user]);
+
+  const handleCreateFolder = async () => {
+    const name = window.prompt('请输入文件夹名称');
+    if (!name) return;
+    try {
+      if (!user) return;
+      const created = await createFolder(name, user.id);
+      const next = [...folders, created].sort((a, b) => a.name.localeCompare(b.name));
+      setFolders(next);
+      setSelectedFolderId(created.id);
+      toast.success('文件夹已创建');
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '创建文件夹失败');
+    }
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -47,7 +100,7 @@ export const Home = () => {
 
     for (const file of acceptedFiles) {
       try {
-        const result = await uploadImage(file, user?.id);
+        const result = await uploadImage(file, user?.id, selectedFolderId || null);
         newUploads.push({
           id: result.id,
           url: result.url,
@@ -55,22 +108,23 @@ export const Home = () => {
           uploadedAt: new Date(),
         });
         successCount++;
-      } catch (error: any) {
-        toast.error(`上传 ${file.name} 失败: ${error.message}`);
+      } catch (error: unknown) {
+        toast.error(`上传 ${file.name} 失败: ${toErrorMessage(error)}`);
       }
     }
 
     setUploading(false);
     if (successCount > 0) {
       toast.success(`成功上传 ${successCount} 张图片`);
-      const updatedUploads = [...newUploads, ...recentUploads].slice(0, 10);
-      setRecentUploads(updatedUploads);
-      
-      if (!user) {
-        localStorage.setItem('guest_recent_uploads', JSON.stringify(updatedUploads));
-      }
+      setRecentUploads((prev) => {
+        const updatedUploads = [...newUploads, ...prev].slice(0, 10);
+        if (!user) {
+          localStorage.setItem('guest_recent_uploads', JSON.stringify(updatedUploads));
+        }
+        return updatedUploads;
+      });
     }
-  }, [user, recentUploads]);
+  }, [selectedFolderId, user]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -95,6 +149,32 @@ export const Home = () => {
         <p className="text-lg text-zinc-600 mb-8">
           无需登录即可上传图片。注册用户专享永久存储、批量管理等多项高级功能。
         </p>
+
+        {user && (
+          <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex-1">
+              <select
+                value={selectedFolderId}
+                onChange={(e) => setSelectedFolderId(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">未分组</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={handleCreateFolder}
+              className="px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            >
+              新建文件夹
+            </button>
+          </div>
+        )}
 
         <div 
           {...getRootProps()} 

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../store/authStore';
-import { Trash2, Copy, ExternalLink, Search, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Copy, ExternalLink, Search, Image as ImageIcon, FolderPlus, FolderX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { createFolder, deleteFolder, listFolders, Folder } from '../lib/folders';
+import { toErrorMessage } from '../lib/utils';
 
 interface ImageRecord {
   id: string;
@@ -20,15 +22,27 @@ export const Dashboard = () => {
   const [images, setImages] = useState<ImageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folderId, setFolderId] = useState<string>('');
 
-  const fetchImages = async () => {
+  const fetchFolders = useCallback(async () => {
     if (!user) return;
-    
+    try {
+      const data = await listFolders();
+      setFolders(data);
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '加载文件夹失败');
+    }
+  }, [user]);
+
+  const fetchImages = useCallback(async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       let query = supabase
         .from('images')
-        .select('*')
+        .select('id, original_name, file_url, file_path, file_size, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -36,20 +50,56 @@ export const Dashboard = () => {
         query = query.ilike('original_name', `%${searchTerm}%`);
       }
 
+      if (folderId === '__none__') {
+        query = query.is('folder_id', null);
+      } else if (folderId) {
+        query = query.eq('folder_id', folderId);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
-      
+
       setImages(data || []);
-    } catch (error: any) {
-      toast.error('加载图片失败: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('加载图片失败: ' + toErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  };
+  }, [folderId, searchTerm, user]);
+
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
 
   useEffect(() => {
     fetchImages();
-  }, [user, searchTerm]);
+  }, [fetchImages]);
+
+  const handleCreateFolder = async () => {
+    const name = window.prompt('请输入文件夹名称');
+    if (!name) return;
+    try {
+      if (!user) return;
+      const created = await createFolder(name, user.id);
+      setFolders([...folders, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setFolderId(created.id);
+      toast.success('文件夹已创建');
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '创建文件夹失败');
+    }
+  };
+
+  const handleDeleteFolder = async (id: string, name: string) => {
+    if (!confirm(`确定要删除文件夹「${name}」吗？文件夹内图片将变为未分组。`)) return;
+    try {
+      await deleteFolder(id);
+      setFolders(folders.filter((f) => f.id !== id));
+      if (folderId === id) setFolderId('');
+      toast.success('文件夹已删除');
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '删除文件夹失败');
+    }
+  };
 
   const handleDelete = async (id: string, filePath: string) => {
     if (!confirm('确定要删除这张图片吗？此操作不可恢复。')) return;
@@ -72,8 +122,8 @@ export const Dashboard = () => {
 
       toast.success('图片已删除');
       setImages(images.filter(img => img.id !== id));
-    } catch (error: any) {
-      toast.error('删除失败: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('删除失败: ' + toErrorMessage(error));
     }
   };
 
@@ -95,16 +145,72 @@ export const Dashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-zinc-900">我的图库</h1>
         
-        <div className="relative w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="搜索图片..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <Search className="w-5 h-5 text-zinc-400 absolute left-3 top-2.5" />
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <select
+            value={folderId}
+            onChange={(e) => setFolderId(e.target.value)}
+            className="w-full sm:w-56 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">全部文件夹</option>
+            <option value="__none__">未分组</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="搜索图片..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Search className="w-5 h-5 text-zinc-400 absolute left-3 top-2.5" />
+          </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-zinc-200 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          文件夹
+          <span className="text-xs text-zinc-500">({folders.length})</span>
+        </div>
+        <div className="flex-1 flex flex-wrap gap-2">
+          {folders.length === 0 ? (
+            <span className="text-sm text-zinc-500">暂无文件夹，可先创建一个用于分组管理</span>
+          ) : (
+            folders.map((f) => (
+              <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-200 bg-zinc-50">
+                <button
+                  type="button"
+                  onClick={() => setFolderId(f.id)}
+                  className="text-sm text-zinc-700 hover:text-blue-600"
+                  title="按此文件夹筛选"
+                >
+                  {f.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFolder(f.id, f.name)}
+                  className="text-zinc-400 hover:text-red-500"
+                  title="删除文件夹"
+                >
+                  <FolderX className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={handleCreateFolder}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+        >
+          <FolderPlus className="w-4 h-4" />
+          新建文件夹
+        </button>
       </div>
 
       {loading ? (

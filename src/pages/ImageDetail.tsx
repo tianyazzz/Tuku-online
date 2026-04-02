@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../store/authStore';
 import { ArrowLeft, Copy, Trash2, Calendar, FileType, HardDrive } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { listFolders, Folder } from '../lib/folders';
+import { toErrorMessage } from '../lib/utils';
 
 interface ImageDetail {
   id: string;
   user_id: string;
+  folder_id: string | null;
   original_name: string;
   file_url: string;
   file_path: string;
@@ -23,6 +26,9 @@ export const ImageDetail = () => {
   const { user } = useAuthStore();
   const [image, setImage] = useState<ImageDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folderId, setFolderId] = useState<string>('');
+  const [savingFolder, setSavingFolder] = useState(false);
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -35,8 +41,8 @@ export const ImageDetail = () => {
 
         if (error) throw error;
         setImage(data);
-      } catch (error: any) {
-        toast.error('获取图片详情失败: ' + error.message);
+      } catch (error: unknown) {
+        toast.error('获取图片详情失败: ' + toErrorMessage(error));
         navigate('/');
       } finally {
         setLoading(false);
@@ -47,6 +53,27 @@ export const ImageDetail = () => {
       fetchImage();
     }
   }, [id, navigate]);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!user) {
+        setFolders([]);
+        return;
+      }
+      try {
+        const data = await listFolders();
+        setFolders(data);
+      } catch (e: unknown) {
+        toast.error(toErrorMessage(e) || '加载文件夹失败');
+      }
+    };
+
+    run();
+  }, [user]);
+
+  useEffect(() => {
+    setFolderId(image?.folder_id ?? '');
+  }, [image?.folder_id]);
 
   const handleDelete = async () => {
     if (!image || !confirm('确定要删除这张图片吗？此操作不可恢复。')) return;
@@ -67,8 +94,8 @@ export const ImageDetail = () => {
 
       toast.success('图片已删除');
       navigate('/dashboard');
-    } catch (error: any) {
-      toast.error('删除失败: ' + error.message);
+    } catch (error: unknown) {
+      toast.error('删除失败: ' + toErrorMessage(error));
     }
   };
 
@@ -100,6 +127,25 @@ export const ImageDetail = () => {
     markdown: `![${image.original_name}](${image.file_url})`,
     html: `<img src="${image.file_url}" alt="${image.original_name}" />`,
     bbcode: `[img]${image.file_url}[/img]`,
+  };
+
+  const handleMoveToFolder = async (nextFolderId: string) => {
+    if (!isOwner || !image) return;
+    setSavingFolder(true);
+    try {
+      const { error } = await supabase
+        .from('images')
+        .update({ folder_id: nextFolderId || null })
+        .eq('id', image.id);
+
+      if (error) throw error;
+      setImage({ ...image, folder_id: nextFolderId || null });
+      toast.success('已更新分组');
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '更新分组失败');
+    } finally {
+      setSavingFolder(false);
+    }
   };
 
   return (
@@ -154,6 +200,30 @@ export const ImageDetail = () => {
                 <span>{format(new Date(image.created_at), 'yyyy-MM-dd HH:mm:ss')}</span>
               </div>
             </div>
+
+            {isOwner && (
+              <div className="mt-6 pt-4 border-t border-zinc-100">
+                <label className="block text-xs font-medium text-zinc-500 mb-1">分组/文件夹</label>
+                <select
+                  disabled={savingFolder}
+                  value={folderId}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFolderId(v);
+                    handleMoveToFolder(v);
+                  }}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                >
+                  <option value="">未分组</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-zinc-400 mt-2">在这里可以把图片移动到不同文件夹</p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm space-y-4">

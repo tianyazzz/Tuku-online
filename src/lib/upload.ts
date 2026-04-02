@@ -9,6 +9,7 @@ export interface UploadResult {
 export const uploadImage = async (
   file: File,
   userId: string | undefined,
+  folderId?: string | null,
   isPublic: boolean = true
 ): Promise<UploadResult> => {
   try {
@@ -40,6 +41,7 @@ export const uploadImage = async (
       .from('images')
       .insert({
         user_id: userId || null,
+        folder_id: userId ? (folderId ?? null) : null,
         original_name: file.name,
         file_name: fileName,
         file_path: filePath,
