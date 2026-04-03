@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Image as ImageIcon, LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 export const Layout: React.FC = () => {
@@ -19,7 +19,7 @@ export const Layout: React.FC = () => {
       <header className="bg-white border-b border-[color:var(--arco-border)] sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-[color:var(--arco-primary-6)] hover:text-[color:var(--arco-primary-7)] transition-colors">
-            <ImageIcon className="w-8 h-8" />
+            <img src="/logo.svg" alt="天琊的图床工具" className="w-8 h-8" />
             <span className="font-semibold text-lg tracking-tight text-[color:var(--arco-text-1)]">天琊的图床工具</span>
           </Link>
           
