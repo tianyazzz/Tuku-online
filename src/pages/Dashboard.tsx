@@ -319,13 +319,13 @@ export const Dashboard = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-zinc-900">我的图库</h1>
+        <h1 className="text-2xl font-semibold text-[color:var(--arco-text-1)]">我的图库</h1>
         
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <select
             value={folderId}
             onChange={(e) => setFolderId(e.target.value)}
-            className="w-full sm:w-56 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input sm:w-56"
           >
             <option value="">全部文件夹</option>
             <option value="__none__">未分组</option>
@@ -338,7 +338,7 @@ export const Dashboard = () => {
           <select
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value)}
-            className="w-full sm:w-52 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input sm:w-52"
           >
             <option value="uploaded_desc">上传时间：新 → 旧</option>
             <option value="uploaded_asc">上传时间：旧 → 新</option>
@@ -351,7 +351,7 @@ export const Dashboard = () => {
           <button
             type="button"
             onClick={handleBatchCopy}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            className="w-full sm:w-auto btn btn-secondary"
             title="按当前排序批量复制当前分组下的图片链接"
           >
             <Copy className="w-4 h-4" />
@@ -363,28 +363,28 @@ export const Dashboard = () => {
               placeholder="搜索图片..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-zinc-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input pl-10"
             />
             <Search className="w-5 h-5 text-zinc-400 absolute left-3 top-2.5" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-zinc-200 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+      <div className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-[color:var(--arco-text-2)]">
           文件夹
-          <span className="text-xs text-zinc-500">({folders.length})</span>
+          <span className="text-xs text-[color:var(--arco-text-3)]">({folders.length})</span>
         </div>
         <div className="flex-1 flex flex-wrap gap-2">
           {folders.length === 0 ? (
-            <span className="text-sm text-zinc-500">暂无文件夹，可先创建一个用于分组管理</span>
+            <span className="text-sm text-[color:var(--arco-text-3)]">暂无文件夹，可先创建一个用于分组管理</span>
           ) : (
             folders.map((f) => (
-              <div key={f.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-zinc-200 bg-zinc-50">
+              <div key={f.id} className="tag">
                 <button
                   type="button"
                   onClick={() => setFolderId(f.id)}
-                  className="text-sm text-zinc-700 hover:text-blue-600"
+                  className="text-sm text-[color:var(--arco-text-2)] hover:text-[color:var(--arco-primary-6)]"
                   title="按此文件夹筛选"
                 >
                   {f.name}
@@ -392,7 +392,7 @@ export const Dashboard = () => {
                 <button
                   type="button"
                   onClick={() => handleDeleteFolder(f.id, f.name)}
-                  className="text-zinc-400 hover:text-red-500"
+                  className="text-[color:var(--arco-text-3)] hover:text-[color:var(--arco-danger-6)]"
                   title="删除文件夹"
                 >
                   <FolderX className="w-4 h-4" />
@@ -402,11 +402,7 @@ export const Dashboard = () => {
           )}
         </div>
         {!isCreatingFolder ? (
-          <button
-            type="button"
-            onClick={openCreateFolder}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
-          >
+          <button type="button" onClick={openCreateFolder} className="btn btn-primary">
             <FolderPlus className="w-4 h-4" />
             新建文件夹
           </button>
@@ -427,14 +423,14 @@ export const Dashboard = () => {
                 }
               }}
               placeholder="文件夹名称"
-              className="w-40 sm:w-48 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input w-40 sm:w-48"
               autoFocus
             />
             <button
               type="button"
               onClick={submitCreateFolder}
               disabled={creatingFolder}
-              className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="btn btn-primary px-3"
             >
               {creatingFolder ? '创建中' : '创建'}
             </button>
@@ -444,7 +440,7 @@ export const Dashboard = () => {
                 setIsCreatingFolder(false);
                 setNewFolderName('');
               }}
-              className="inline-flex items-center justify-center px-3 py-2 rounded-md bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
+              className="btn btn-secondary px-3"
             >
               取消
             </button>

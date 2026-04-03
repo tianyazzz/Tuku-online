@@ -163,10 +163,10 @@ export const Home = () => {
     <div className="space-y-12">
       {/* Hero & Upload Section */}
       <section className="text-center max-w-3xl mx-auto mt-8">
-        <h1 className="text-4xl font-extrabold text-zinc-900 mb-4 tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-semibold text-[color:var(--arco-text-1)] mb-3 tracking-tight">
           极简、快速的图片托管服务
         </h1>
-        <p className="text-lg text-zinc-600 mb-8">
+        <p className="text-base sm:text-lg text-[color:var(--arco-text-2)] mb-8">
           无需登录即可上传图片。注册用户专享永久存储、批量管理等多项高级功能。
         </p>
 
@@ -176,7 +176,7 @@ export const Home = () => {
               <select
                 value={selectedFolderId}
                 onChange={(e) => setSelectedFolderId(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input"
               >
                 <option value="">未分组</option>
                 {folders.map((f) => (
@@ -190,7 +190,7 @@ export const Home = () => {
               <button
                 type="button"
                 onClick={openCreateFolder}
-                className="px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+                className="btn btn-primary"
               >
                 新建文件夹
               </button>
@@ -211,14 +211,14 @@ export const Home = () => {
                     }
                   }}
                   placeholder="文件夹名称"
-                  className="w-40 sm:w-48 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-40 sm:w-48"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={submitCreateFolder}
                   disabled={creatingFolder}
-                  className="px-3 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                  className="btn btn-primary px-3"
                 >
                   {creatingFolder ? '创建中' : '创建'}
                 </button>
@@ -228,7 +228,7 @@ export const Home = () => {
                     setIsCreatingFolder(false);
                     setNewFolderName('');
                   }}
-                  className="px-3 py-2 rounded-md bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
+                  className="btn btn-secondary px-3"
                 >
                   取消
                 </button>
@@ -237,33 +237,33 @@ export const Home = () => {
           </div>
         )}
 
-        <div 
-          {...getRootProps()} 
+        <div
+          {...getRootProps()}
           className={`
-            border-2 border-dashed rounded-xl p-12 cursor-pointer transition-all duration-200
+            card border-2 border-dashed rounded-xl p-12 cursor-pointer transition-all duration-200
             flex flex-col items-center justify-center min-h-[300px]
-            ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-zinc-300 hover:border-blue-400 hover:bg-zinc-50 bg-white'}
+            ${isDragActive ? 'border-[color:var(--arco-primary-6)] bg-[color:var(--arco-fill-1)]' : 'border-[color:var(--arco-border)] hover:border-[color:var(--arco-primary-6)] bg-white'}
           `}
         >
           <input {...getInputProps()} />
           {uploading ? (
-            <div className="flex flex-col items-center text-blue-500">
+            <div className="flex flex-col items-center text-[color:var(--arco-primary-6)]">
               <Loader2 className="w-12 h-12 animate-spin mb-4" />
               <p className="text-lg font-medium">正在上传中，请稍候...</p>
             </div>
           ) : (
-            <div className="flex flex-col items-center text-zinc-500">
-              <div className="bg-blue-100 p-4 rounded-full mb-4 text-blue-500">
+            <div className="flex flex-col items-center text-[color:var(--arco-text-2)]">
+              <div className="bg-[color:var(--arco-fill-1)] p-4 rounded-full mb-4 text-[color:var(--arco-primary-6)]">
                 <UploadCloud className="w-8 h-8" />
               </div>
-              <p className="text-xl font-medium text-zinc-700 mb-2">
+              <p className="text-xl font-medium text-[color:var(--arco-text-1)] mb-2">
                 {isDragActive ? '松开鼠标即可上传' : '点击或拖拽图片到此处上传'}
               </p>
               <p className="text-sm">
                 支持 JPG, PNG, GIF, WEBP 格式。最大 10MB
               </p>
               {!user && (
-                <p className="text-xs text-amber-600 mt-4 bg-amber-50 px-3 py-1 rounded-full">
+                <p className="text-xs text-[#D25F00] mt-4 bg-[#FFF7E8] px-3 py-1 rounded-full border border-[#FFE4BA]">
                   访客上传的图片仅保留 24 小时
                 </p>
               )}
