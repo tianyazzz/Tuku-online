@@ -37,24 +37,45 @@ export const uploadImage = async (
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Guest: 24h
       : null;
 
-    const { data: dbData, error: dbError } = await supabase
-      .from('images')
-      .insert({
-        user_id: userId || null,
-        folder_id: userId ? (folderId ?? null) : null,
-        original_name: file.name,
-        file_name: fileName,
-        file_path: filePath,
-        file_url: publicUrl,
-        file_size: file.size,
-        mime_type: file.type,
-        is_public: isPublic,
-        expires_at: expiresAt,
-      })
-      .select('id, file_url')
-      .single();
+    const basePayload = {
+      user_id: userId || null,
+      folder_id: userId ? (folderId ?? null) : null,
+      original_name: file.name,
+      file_name: fileName,
+      file_path: filePath,
+      file_url: publicUrl,
+      file_size: file.size,
+      mime_type: file.type,
+      is_public: isPublic,
+      expires_at: expiresAt,
+    };
+
+    const payloadWithExtras = {
+      ...basePayload,
+      display_name: file.name,
+      sort_index: Date.now(),
+    };
+
+    let dbData: { id: string; file_url: string } | null = null;
+    let dbError: unknown = null;
+
+    {
+      const res = await supabase.from('images').insert(payloadWithExtras).select('id, file_url').single();
+      dbData = res.data;
+      dbError = res.error;
+    }
+
+    if (dbError && typeof dbError === 'object' && dbError && 'message' in dbError) {
+      const msg = String((dbError as { message?: unknown }).message || '');
+      if (msg.includes('display_name') || msg.includes('sort_index')) {
+        const res = await supabase.from('images').insert(basePayload).select('id, file_url').single();
+        dbData = res.data;
+        dbError = res.error;
+      }
+    }
 
     if (dbError) throw dbError;
+    if (!dbData) throw new Error('Failed to save image record');
 
     return {
       id: dbData.id,

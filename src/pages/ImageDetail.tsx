@@ -13,6 +13,7 @@ interface ImageDetail {
   user_id: string;
   folder_id: string | null;
   original_name: string;
+  display_name?: string | null;
   file_url: string;
   file_path: string;
   file_size: number;
@@ -122,10 +123,12 @@ export const ImageDetail = () => {
 
   const isOwner = user && user.id === image.user_id;
 
+  const imageName = image.display_name && image.display_name.trim() ? image.display_name : image.original_name;
+
   const links = {
     direct: image.file_url,
-    markdown: `![${image.original_name}](${image.file_url})`,
-    html: `<img src="${image.file_url}" alt="${image.original_name}" />`,
+    markdown: `![${imageName}](${image.file_url})`,
+    html: `<img src="${image.file_url}" alt="${imageName}" />`,
     bbcode: `[img]${image.file_url}[/img]`,
   };
 
@@ -174,7 +177,7 @@ export const ImageDetail = () => {
         <div className="md:col-span-2 bg-zinc-100 rounded-xl flex items-center justify-center min-h-[400px] border border-zinc-200 overflow-hidden relative group">
           <img 
             src={image.file_url} 
-            alt={image.original_name} 
+            alt={imageName} 
             className="max-w-full max-h-[800px] object-contain"
           />
         </div>
@@ -182,8 +185,8 @@ export const ImageDetail = () => {
         {/* Info & Links Area */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm">
-            <h2 className="text-lg font-bold text-zinc-900 mb-4 truncate" title={image.original_name}>
-              {image.original_name}
+            <h2 className="text-lg font-bold text-zinc-900 mb-4 truncate" title={imageName}>
+              {imageName}
             </h2>
             
             <div className="space-y-3 text-sm text-zinc-600">

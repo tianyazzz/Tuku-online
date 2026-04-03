@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../store/authStore';
-import { Trash2, Copy, ExternalLink, Search, Image as ImageIcon, FolderPlus, FolderX } from 'lucide-react';
+import { Trash2, Copy, ExternalLink, Search, Image as ImageIcon, FolderPlus, FolderX, ArrowUp, ArrowDown, Pencil, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -11,10 +11,13 @@ import { toErrorMessage } from '../lib/utils';
 interface ImageRecord {
   id: string;
   original_name: string;
+  display_name: string | null;
   file_url: string;
   file_path: string;
   file_size: number;
   created_at: string;
+  sort_index: number | null;
+  folder_id?: string | null;
 }
 
 export const Dashboard = () => {
@@ -27,6 +30,10 @@ export const Dashboard = () => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [renamingId, setRenamingId] = useState<string>('');
+  const [renameValue, setRenameValue] = useState<string>('');
+  const [renaming, setRenaming] = useState(false);
+  const [reorderingId, setReorderingId] = useState<string>('');
 
   const fetchFolders = useCallback(async () => {
     if (!user) return;
@@ -45,12 +52,14 @@ export const Dashboard = () => {
       setLoading(true);
       let query = supabase
         .from('images')
-        .select('id, original_name, file_url, file_path, file_size, created_at')
+        .select('id, original_name, display_name, file_url, file_path, file_size, created_at, sort_index, folder_id')
         .eq('user_id', user.id)
+        .order('sort_index', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
       if (searchTerm) {
-        query = query.ilike('original_name', `%${searchTerm}%`);
+        const term = searchTerm.split(',').join(' ');
+        query = query.or(`original_name.ilike.%${term}%,display_name.ilike.%${term}%`);
       }
 
       if (folderId === '__none__') {
@@ -69,6 +78,121 @@ export const Dashboard = () => {
       setLoading(false);
     }
   }, [folderId, searchTerm, user]);
+
+  const getImageName = (img: ImageRecord) => (img.display_name && img.display_name.trim() ? img.display_name : img.original_name);
+
+  const handleBatchCopy = async () => {
+    if (!folderId) {
+      toast.error('请先选择一个文件夹（或选择“未分组”）再批量复制');
+      return;
+    }
+    if (images.length === 0) {
+      toast.error('当前文件夹下没有图片');
+      return;
+    }
+    const text = images.map((img) => img.file_url).join('\n');
+    await navigator.clipboard.writeText(text);
+    toast.success(`已复制 ${images.length} 条链接`);
+  };
+
+  const bootstrapSortIndexIfNeeded = async () => {
+    if (!user) return;
+    if (!folderId || folderId === '__none__') return;
+    if (images.every((img) => typeof img.sort_index === 'number')) return;
+
+    const now = Date.now();
+    const updates = images.map((img, idx) => ({
+      id: img.id,
+      sort_index: now - idx,
+    }));
+
+    const { error } = await supabase.from('images').upsert(updates, { onConflict: 'id' });
+    if (error) throw error;
+  };
+
+  const handleMove = async (id: string, direction: 'up' | 'down') => {
+    if (!user) return;
+    if (!folderId || folderId === '__none__') return;
+    if (reorderingId) return;
+
+    setReorderingId(id);
+    try {
+      await bootstrapSortIndexIfNeeded();
+
+      const idx = images.findIndex((img) => img.id === id);
+      if (idx < 0) return;
+      const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapWith < 0 || swapWith >= images.length) return;
+
+      const a = images[idx];
+      const b = images[swapWith];
+      const aSort = typeof a.sort_index === 'number' ? a.sort_index : Date.now();
+      const bSort = typeof b.sort_index === 'number' ? b.sort_index : Date.now() - 1;
+
+      const { error } = await supabase
+        .from('images')
+        .upsert(
+          [
+            { id: a.id, sort_index: bSort },
+            { id: b.id, sort_index: aSort },
+          ],
+          { onConflict: 'id' }
+        );
+      if (error) throw error;
+
+      const next = [...images];
+      next[idx] = { ...a, sort_index: bSort };
+      next[swapWith] = { ...b, sort_index: aSort };
+      const swapped = next[swapWith];
+      next[swapWith] = next[idx];
+      next[idx] = swapped;
+      setImages(next);
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '排序失败');
+      fetchImages();
+    } finally {
+      setReorderingId('');
+    }
+  };
+
+  const startRename = (img: ImageRecord) => {
+    setRenamingId(img.id);
+    setRenameValue(getImageName(img));
+  };
+
+  const cancelRename = () => {
+    setRenamingId('');
+    setRenameValue('');
+  };
+
+  const submitRename = async () => {
+    if (!user) return;
+    if (!renamingId) return;
+    if (renaming) return;
+
+    const value = renameValue.trim();
+    if (!value) {
+      toast.error('名称不能为空');
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      const { error } = await supabase
+        .from('images')
+        .update({ display_name: value })
+        .eq('id', renamingId);
+      if (error) throw error;
+
+      setImages((prev) => prev.map((img) => (img.id === renamingId ? { ...img, display_name: value } : img)));
+      toast.success('已重命名');
+      cancelRename();
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e) || '重命名失败');
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   useEffect(() => {
     fetchFolders();
@@ -179,6 +303,15 @@ export const Dashboard = () => {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={handleBatchCopy}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            title="按当前排序批量复制当前分组下的图片链接"
+          >
+            <Copy className="w-4 h-4" />
+            批量复制
+          </button>
           <div className="relative w-full sm:w-64">
             <input
               type="text"
@@ -302,9 +435,56 @@ export const Dashboard = () => {
               </Link>
               
               <div className="p-4">
-                <h4 className="font-medium text-zinc-800 truncate mb-1" title={image.original_name}>
-                  {image.original_name}
-                </h4>
+                {renamingId === image.id ? (
+                  <div className="flex items-center gap-2 mb-1">
+                    <input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          submitRename();
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelRename();
+                        }
+                      }}
+                      className="flex-1 min-w-0 px-2 py-1 border border-zinc-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={submitRename}
+                      disabled={renaming}
+                      className="px-2 py-1 rounded bg-blue-500 text-white text-sm disabled:opacity-50"
+                    >
+                      保存
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelRename}
+                      className="p-1 rounded text-zinc-500 hover:bg-zinc-100"
+                      title="取消"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h4 className="font-medium text-zinc-800 truncate" title={getImageName(image)}>
+                      {getImageName(image)}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => startRename(image)}
+                      className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors"
+                      title="重命名"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-xs text-zinc-500 mb-3">
                   <span>{formatSize(image.file_size)}</span>
                   <span>{format(new Date(image.created_at), 'yyyy-MM-dd')}</span>
@@ -319,6 +499,28 @@ export const Dashboard = () => {
                     复制
                   </button>
                   <div className="flex items-center gap-2">
+                    {folderId && folderId !== '__none__' && images.length > 1 && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(image.id, 'up')}
+                          disabled={reorderingId === image.id}
+                          className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors disabled:opacity-50"
+                          title="上移"
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(image.id, 'down')}
+                          disabled={reorderingId === image.id}
+                          className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors disabled:opacity-50"
+                          title="下移"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                     <Link 
                       to={`/image/${image.id}`}
                       className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
