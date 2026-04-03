@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { UploadCloud, Check, Copy, Loader2 } from 'lucide-react';
+import { UploadCloud, Check, Copy, Loader2, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { uploadImage } from '../lib/upload';
 import toast from 'react-hot-toast';
@@ -167,24 +167,27 @@ export const Home = () => {
           极简、快速的图片托管服务
         </h1>
         <p className="text-base sm:text-lg text-[color:var(--arco-text-2)] mb-8">
-          无需登录即可上传图片。注册用户专享永久存储、批量管理等多项高级功能。
+          无需登录即可上传图片，注册用户专享永久存储、批量管理等多项高级功能。
         </p>
 
         {user && (
           <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex-1">
-              <select
-                value={selectedFolderId}
-                onChange={(e) => setSelectedFolderId(e.target.value)}
-                className="input"
-              >
-                <option value="">未分组</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedFolderId}
+                  onChange={(e) => setSelectedFolderId(e.target.value)}
+                  className="input appearance-none pr-10"
+                >
+                  <option value="">未分组</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[color:var(--arco-text-3)]" />
+              </div>
             </div>
             {!isCreatingFolder ? (
               <button
