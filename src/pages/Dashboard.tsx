@@ -16,6 +16,7 @@ interface ImageRecord {
   file_path: string;
   file_size: number;
   created_at: string;
+  updated_at?: string;
   sort_index: number | null;
   folder_id?: string | null;
 }
@@ -27,6 +28,7 @@ export const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folderId, setFolderId] = useState<string>('');
+  const [sortMode, setSortMode] = useState<string>('uploaded_desc');
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -52,10 +54,8 @@ export const Dashboard = () => {
       setLoading(true);
       let query = supabase
         .from('images')
-        .select('id, original_name, display_name, file_url, file_path, file_size, created_at, sort_index, folder_id')
-        .eq('user_id', user.id)
-        .order('sort_index', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
+        .select('id, original_name, display_name, file_url, file_path, file_size, created_at, updated_at, sort_index, folder_id')
+        .eq('user_id', user.id);
 
       if (searchTerm) {
         const term = searchTerm.split(',').join(' ');
@@ -68,6 +68,36 @@ export const Dashboard = () => {
         query = query.eq('folder_id', folderId);
       }
 
+      if (sortMode === 'custom_desc') {
+        query = query
+          .order('sort_index', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false });
+      } else if (sortMode === 'uploaded_asc') {
+        query = query.order('created_at', { ascending: true });
+      } else if (sortMode === 'uploaded_desc') {
+        query = query.order('created_at', { ascending: false });
+      } else if (sortMode === 'name_asc') {
+        query = query
+          .order('display_name', { ascending: true, nullsFirst: false })
+          .order('original_name', { ascending: true })
+          .order('created_at', { ascending: false });
+      } else if (sortMode === 'name_desc') {
+        query = query
+          .order('display_name', { ascending: false, nullsFirst: false })
+          .order('original_name', { ascending: false })
+          .order('created_at', { ascending: false });
+      } else if (sortMode === 'modified_asc') {
+        query = query
+          .order('updated_at', { ascending: true })
+          .order('created_at', { ascending: true });
+      } else if (sortMode === 'modified_desc') {
+        query = query
+          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
       const { data, error } = await query;
       if (error) throw error;
 
@@ -77,7 +107,7 @@ export const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [folderId, searchTerm, user]);
+  }, [folderId, searchTerm, sortMode, user]);
 
   const getImageName = (img: ImageRecord) => (img.display_name && img.display_name.trim() ? img.display_name : img.original_name);
 
@@ -97,6 +127,7 @@ export const Dashboard = () => {
 
   const bootstrapSortIndexIfNeeded = async () => {
     if (!user) return;
+    if (sortMode !== 'custom_desc') return;
     if (!folderId || folderId === '__none__') return;
     if (images.every((img) => typeof img.sort_index === 'number')) return;
 
@@ -112,6 +143,7 @@ export const Dashboard = () => {
 
   const handleMove = async (id: string, direction: 'up' | 'down') => {
     if (!user) return;
+    if (sortMode !== 'custom_desc') return;
     if (!folderId || folderId === '__none__') return;
     if (reorderingId) return;
 
@@ -302,6 +334,19 @@ export const Dashboard = () => {
                 {f.name}
               </option>
             ))}
+          </select>
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value)}
+            className="w-full sm:w-52 px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="uploaded_desc">上传时间：新 → 旧</option>
+            <option value="uploaded_asc">上传时间：旧 → 新</option>
+            <option value="name_asc">名称：A → Z</option>
+            <option value="name_desc">名称：Z → A</option>
+            <option value="modified_desc">修改时间：新 → 旧</option>
+            <option value="modified_asc">修改时间：旧 → 新</option>
+            <option value="custom_desc">手动排序</option>
           </select>
           <button
             type="button"
@@ -499,7 +544,7 @@ export const Dashboard = () => {
                     复制
                   </button>
                   <div className="flex items-center gap-2">
-                    {folderId && folderId !== '__none__' && images.length > 1 && (
+                    {sortMode === 'custom_desc' && folderId && folderId !== '__none__' && images.length > 1 && (
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
