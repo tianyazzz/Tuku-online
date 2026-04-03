@@ -497,14 +497,14 @@ export const Dashboard = () => {
                       type="button"
                       onClick={submitRename}
                       disabled={renaming}
-                      className="px-2 py-1 rounded bg-blue-500 text-white text-sm disabled:opacity-50"
+                      className="px-2 py-1 rounded bg-blue-500 text-white text-sm transition duration-150 ease-out transform-gpu active:scale-[0.99] disabled:opacity-50"
                     >
                       保存
                     </button>
                     <button
                       type="button"
                       onClick={cancelRename}
-                      className="p-1 rounded text-zinc-500 hover:bg-zinc-100"
+                      className="icon-btn p-1 text-zinc-500 hover:bg-zinc-100"
                       title="取消"
                     >
                       <X className="w-4 h-4" />
@@ -518,7 +518,7 @@ export const Dashboard = () => {
                     <button
                       type="button"
                       onClick={() => startRename(image)}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors"
+                      className="icon-btn text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
                       title="重命名"
                     >
                       <Pencil className="w-4 h-4" />
@@ -533,7 +533,7 @@ export const Dashboard = () => {
                 <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
                   <button 
                     onClick={() => copyUrl(image.file_url)}
-                    className="flex items-center gap-1 text-sm text-zinc-600 hover:text-blue-500 transition-colors"
+                    className="flex items-center gap-1 text-sm text-zinc-600 hover:text-blue-500 transition duration-150 ease-out transform-gpu active:scale-[0.99]"
                   >
                     <Copy className="w-4 h-4" />
                     复制
@@ -545,7 +545,7 @@ export const Dashboard = () => {
                           type="button"
                           onClick={() => handleMove(image.id, 'up')}
                           disabled={reorderingId === image.id}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors disabled:opacity-50"
+                          className="icon-btn text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
                           title="上移"
                         >
                           <ArrowUp className="w-4 h-4" />
@@ -554,7 +554,7 @@ export const Dashboard = () => {
                           type="button"
                           onClick={() => handleMove(image.id, 'down')}
                           disabled={reorderingId === image.id}
-                          className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded transition-colors disabled:opacity-50"
+                          className="icon-btn text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
                           title="下移"
                         >
                           <ArrowDown className="w-4 h-4" />
@@ -563,14 +563,14 @@ export const Dashboard = () => {
                     )}
                     <Link 
                       to={`/image/${image.id}`}
-                      className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
+                      className="icon-btn text-zinc-400 hover:text-blue-500 hover:bg-blue-50"
                       title="详情"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Link>
                     <button 
                       onClick={() => handleDelete(image.id, image.file_path)}
-                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="icon-btn text-zinc-400 hover:text-red-500 hover:bg-red-50"
                       title="删除"
                     >
                       <Trash2 className="w-4 h-4" />

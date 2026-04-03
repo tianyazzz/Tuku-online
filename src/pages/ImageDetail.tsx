@@ -157,7 +157,7 @@ export const ImageDetail = () => {
       <div className="mb-6 flex items-center justify-between">
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-zinc-600 hover:text-blue-500 transition-colors"
+          className="flex items-center gap-2 text-zinc-600 hover:text-blue-500 transition duration-150 ease-out transform-gpu active:scale-[0.99]"
         >
           <ArrowLeft className="w-4 h-4" />
           返回
@@ -165,7 +165,7 @@ export const ImageDetail = () => {
         {isOwner && (
           <button 
             onClick={handleDelete}
-            className="flex items-center gap-2 text-red-500 hover:text-red-600 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
+            className="flex items-center gap-2 text-red-500 hover:text-red-600 transition duration-150 ease-out transform-gpu active:scale-[0.99] bg-red-50 px-3 py-1.5 rounded-md"
           >
             <Trash2 className="w-4 h-4" />
             删除图片
@@ -237,7 +237,7 @@ export const ImageDetail = () => {
                   />
                   <button 
                     onClick={() => copyToClipboard(links.direct, '直链')}
-                    className="p-1.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition-colors"
+                    className="icon-btn bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                     title="复制直链"
                   >
                     <Copy className="w-4 h-4" />
@@ -256,7 +256,7 @@ export const ImageDetail = () => {
                   />
                   <button 
                     onClick={() => copyToClipboard(links.markdown, 'Markdown代码')}
-                    className="p-1.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition-colors"
+                    className="icon-btn bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -274,7 +274,7 @@ export const ImageDetail = () => {
                   />
                   <button 
                     onClick={() => copyToClipboard(links.html, 'HTML代码')}
-                    className="p-1.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition-colors"
+                    className="icon-btn bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -292,7 +292,7 @@ export const ImageDetail = () => {
                   />
                   <button 
                     onClick={() => copyToClipboard(links.bbcode, 'BBCode代码')}
-                    className="p-1.5 bg-zinc-100 text-zinc-600 rounded hover:bg-zinc-200 transition-colors"
+                    className="icon-btn bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
