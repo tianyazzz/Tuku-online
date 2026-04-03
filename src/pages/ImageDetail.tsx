@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { listFolders, Folder } from '../lib/folders';
 import { toErrorMessage } from '../lib/utils';
+import { Select } from '../components/Select';
 
 interface ImageDetail {
   id: string;
@@ -207,23 +208,15 @@ export const ImageDetail = () => {
             {isOwner && (
               <div className="mt-6 pt-4 border-t border-zinc-100">
                 <label className="block text-xs font-medium text-zinc-500 mb-1">分组/文件夹</label>
-                <select
-                  disabled={savingFolder}
+                <Select
                   value={folderId}
-                  onChange={(e) => {
-                    const v = e.target.value;
+                  onChange={(v) => {
                     setFolderId(v);
                     handleMoveToFolder(v);
                   }}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
-                >
-                  <option value="">未分组</option>
-                  {folders.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
+                  disabled={savingFolder}
+                  options={[{ value: '', label: '未分组' }, ...folders.map((f) => ({ value: f.id, label: f.name }))]}
+                />
                 <p className="text-xs text-zinc-400 mt-2">在这里可以把图片移动到不同文件夹</p>
               </div>
             )}

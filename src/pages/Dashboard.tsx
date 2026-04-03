@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { createFolder, deleteFolder, listFolders, Folder } from '../lib/folders';
 import { toErrorMessage } from '../lib/utils';
+import { Select } from '../components/Select';
 
 interface ImageRecord {
   id: string;
@@ -322,32 +323,30 @@ export const Dashboard = () => {
         <h1 className="text-2xl font-semibold text-[color:var(--arco-text-1)]">我的图库</h1>
         
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <select
+          <Select
+            className="sm:w-56"
             value={folderId}
-            onChange={(e) => setFolderId(e.target.value)}
-            className="input sm:w-56"
-          >
-            <option value="">全部文件夹</option>
-            <option value="__none__">未分组</option>
-            {folders.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={setFolderId}
+            options={[
+              { value: '', label: '全部文件夹' },
+              { value: '__none__', label: '未分组' },
+              ...folders.map((f) => ({ value: f.id, label: f.name })),
+            ]}
+          />
+          <Select
+            className="sm:w-52"
             value={sortMode}
-            onChange={(e) => setSortMode(e.target.value)}
-            className="input sm:w-52"
-          >
-            <option value="uploaded_desc">上传时间：新 → 旧</option>
-            <option value="uploaded_asc">上传时间：旧 → 新</option>
-            <option value="name_asc">名称：A → Z</option>
-            <option value="name_desc">名称：Z → A</option>
-            <option value="modified_desc">修改时间：新 → 旧</option>
-            <option value="modified_asc">修改时间：旧 → 新</option>
-            <option value="custom_desc">手动排序</option>
-          </select>
+            onChange={setSortMode}
+            options={[
+              { value: 'uploaded_desc', label: '上传时间：新 → 旧' },
+              { value: 'uploaded_asc', label: '上传时间：旧 → 新' },
+              { value: 'name_asc', label: '名称：A → Z' },
+              { value: 'name_desc', label: '名称：Z → A' },
+              { value: 'modified_desc', label: '修改时间：新 → 旧' },
+              { value: 'modified_asc', label: '修改时间：旧 → 新' },
+              { value: 'custom_desc', label: '手动排序' },
+            ]}
+          />
           <button
             type="button"
             onClick={handleBatchCopy}
